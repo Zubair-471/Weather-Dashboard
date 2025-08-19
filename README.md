@@ -45,9 +45,10 @@ A modern, responsive weather application that displays real-time weather informa
    - Simply open `index.html` in your web browser
    - Or use a local server: `python -m http.server 8000`
 
-3. **API Key Configured** ✅
-   - The app uses WeatherAPI.com with your API key
-   - Ready to use - just open and enjoy!
+3. **Ready to Use** ✅
+   - **GitHub Demo**: Uses Open-Meteo API (free, no API key required)
+   - **Local Development**: Use `script-local.js` with your WeatherAPI.com key
+   - Both versions work perfectly!
 
 4. **Test the features**
    - Search for a city
@@ -104,11 +105,23 @@ weather-dashboard/
 ## 🔧 Customization
 
 ### API Configuration
-The app uses WeatherAPI.com with your configured API key:
+
+**For GitHub Demo (script.js):**
 ```javascript
+// Uses Open-Meteo API (free, no API key required)
+const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1';
+```
+
+**For Local Development (script-local.js):**
+```javascript
+// Uses your WeatherAPI.com API key
 const WEATHER_API_KEY = 'cfc982980dda4fe99ee151608251708';
 const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
 ```
+
+**To switch between versions:**
+1. For GitHub demo: Use `script.js` (default)
+2. For local development: Rename `script-local.js` to `script.js`
 
 ### Adding New Weather Icons
 1. Add SVG icon to `images/` folder
@@ -134,9 +147,13 @@ Edit CSS variables in `style.css`:
 
 ## 🌤 Weather API Integration
 
-The app uses WeatherAPI.com for weather data:
+The app uses different APIs based on the version:
 
-### API Endpoints Used
+**GitHub Demo (Open-Meteo):**
+- **Current Weather**: `api.open-meteo.com/v1/forecast`
+- **Geocoding**: `geocoding-api.open-meteo.com/v1/search`
+
+**Local Development (WeatherAPI.com):**
 - **Current Weather**: `api.weatherapi.com/v1/current.json`
 - **Forecast**: `api.weatherapi.com/v1/forecast.json`
 

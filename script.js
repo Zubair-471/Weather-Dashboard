@@ -1,7 +1,12 @@
 // Configuration
-const WEATHER_API_KEY = 'cfc982980dda4fe99ee151608251708'; // WeatherAPI.com API key
-const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
+// For GitHub Pages demo, use Open-Meteo (free, no API key required)
+// For local development with your API key, uncomment the lines below
 const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1';
+const GEOCODING_API_URL = 'https://geocoding-api.open-meteo.com/v1';
+
+// Uncomment these lines for local development with your WeatherAPI.com key
+// const WEATHER_API_KEY = 'cfc982980dda4fe99ee151608251708';
+// const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
 
 // DOM Elements
 const weatherCards = document.getElementById('weather-cards');
@@ -126,35 +131,58 @@ function getWeatherIconCode(code) {
 // API Functions
 async function fetchWeatherData(city) {
     try {
-        const response = await fetch(
-            `${WEATHER_API_BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&aqi=no`
+        // First, get coordinates for the city
+        const geoResponse = await fetch(
+            `${GEOCODING_API_URL}/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
         );
         
-        if (!response.ok) {
+        if (!geoResponse.ok) {
             throw new Error(`City not found: ${city}`);
         }
         
-        const data = await response.json();
+        const geoData = await geoResponse.json();
         
-        // Transform WeatherAPI.com data to match expected format
+        if (!geoData.results || geoData.results.length === 0) {
+            throw new Error(`City not found: ${city}`);
+        }
+        
+        const location = geoData.results[0];
+        const { latitude, longitude, country, name } = location;
+        
+        // Then, get weather data using coordinates
+        const weatherResponse = await fetch(
+            `${OPEN_METEO_BASE_URL}/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,wind_speed_10m,weather_code&hourly=weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
+        );
+        
+        if (!weatherResponse.ok) {
+            throw new Error(`Failed to fetch weather for ${city}`);
+        }
+        
+        const weatherData = await weatherResponse.json();
+        
+        // Transform Open-Meteo data to match expected format
+        const current = weatherData.current;
+        const weatherCode = current.weather_code;
+        const weatherDescription = getWeatherDescription(weatherCode);
+        
         return {
-            name: data.location.name,
+            name: name,
             main: {
-                temp: data.current.temp_c,
-                humidity: data.current.humidity,
-                feels_like: data.current.feelslike_c,
-                pressure: data.current.pressure_mb
+                temp: current.temperature_2m,
+                humidity: current.relative_humidity_2m,
+                feels_like: current.apparent_temperature,
+                pressure: current.pressure_msl
             },
             weather: [{
-                main: data.current.condition.text,
-                description: data.current.condition.text,
-                icon: data.current.condition.icon
+                main: weatherDescription,
+                description: weatherDescription,
+                icon: weatherCode
             }],
             wind: {
-                speed: data.current.wind_kph
+                speed: current.wind_speed_10m
             },
             sys: {
-                country: data.location.country
+                country: country
             }
         };
     } catch (error) {
@@ -164,28 +192,47 @@ async function fetchWeatherData(city) {
 
 async function fetchForecastData(city) {
     try {
-        const response = await fetch(
-            `${WEATHER_API_BASE_URL}/forecast.json?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&days=3&aqi=no&alerts=no`
+        // First, get coordinates for the city
+        const geoResponse = await fetch(
+            `${GEOCODING_API_URL}/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
         );
         
-        if (!response.ok) {
+        if (!geoResponse.ok) {
+            throw new Error(`City not found: ${city}`);
+        }
+        
+        const geoData = await geoResponse.json();
+        
+        if (!geoData.results || geoData.results.length === 0) {
+            throw new Error(`City not found: ${city}`);
+        }
+        
+        const location = geoData.results[0];
+        const { latitude, longitude } = location;
+        
+        // Then, get forecast data using coordinates
+        const forecastResponse = await fetch(
+            `${OPEN_METEO_BASE_URL}/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
+        );
+        
+        if (!forecastResponse.ok) {
             throw new Error(`Forecast not available for: ${city}`);
         }
         
-        const data = await response.json();
+        const forecastData = await forecastResponse.json();
         
-        // Transform WeatherAPI.com forecast data to match expected format
-        return data.forecast.forecastday.slice(1, 4).map(day => ({
-            dt: new Date(day.date).getTime() / 1000,
+        // Transform Open-Meteo forecast data to match expected format
+        return forecastData.daily.time.slice(1, 4).map((date, index) => ({
+            dt: new Date(date).getTime() / 1000,
             main: {
-                temp_max: day.day.maxtemp_c,
-                temp_min: day.day.mintemp_c,
-                temp: day.day.avgtemp_c
+                temp_max: forecastData.daily.temperature_2m_max[index + 1],
+                temp_min: forecastData.daily.temperature_2m_min[index + 1],
+                temp: (forecastData.daily.temperature_2m_max[index + 1] + forecastData.daily.temperature_2m_min[index + 1]) / 2
             },
             weather: [{
-                main: day.day.condition.text,
-                description: day.day.condition.text,
-                icon: day.day.condition.icon
+                main: getWeatherDescription(forecastData.daily.weather_code[index + 1]),
+                description: getWeatherDescription(forecastData.daily.weather_code[index + 1]),
+                icon: forecastData.daily.weather_code[index + 1]
             }]
         }));
     } catch (error) {
@@ -196,7 +243,7 @@ async function fetchForecastData(city) {
 async function fetchWeatherByCoords(lat, lon) {
     try {
         const response = await fetch(
-            `${WEATHER_API_BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&aqi=no`
+            `${OPEN_METEO_BASE_URL}/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,wind_speed_10m,weather_code&timezone=auto`
         );
         
         if (!response.ok) {
@@ -205,25 +252,45 @@ async function fetchWeatherByCoords(lat, lon) {
         
         const data = await response.json();
         
-        // Transform WeatherAPI.com data to match expected format
+        // Get city name from reverse geocoding
+        const geoResponse = await fetch(
+            `${GEOCODING_API_URL}/search?latitude=${lat}&longitude=${lon}&count=1&language=en&format=json`
+        );
+        
+        let cityName = 'Your Location';
+        let country = '';
+        
+        if (geoResponse.ok) {
+            const geoData = await geoResponse.json();
+            if (geoData.results && geoData.results.length > 0) {
+                cityName = geoData.results[0].name;
+                country = geoData.results[0].country;
+            }
+        }
+        
+        // Transform Open-Meteo data to match expected format
+        const current = data.current;
+        const weatherCode = current.weather_code;
+        const weatherDescription = getWeatherDescription(weatherCode);
+        
         return {
-            name: data.location.name,
+            name: cityName,
             main: {
-                temp: data.current.temp_c,
-                humidity: data.current.humidity,
-                feels_like: data.current.feelslike_c,
-                pressure: data.current.pressure_mb
+                temp: current.temperature_2m,
+                humidity: current.relative_humidity_2m,
+                feels_like: current.apparent_temperature,
+                pressure: current.pressure_msl
             },
             weather: [{
-                main: data.current.condition.text,
-                description: data.current.condition.text,
-                icon: data.current.condition.icon
+                main: weatherDescription,
+                description: weatherDescription,
+                icon: weatherCode
             }],
             wind: {
-                speed: data.current.wind_kph
+                speed: current.wind_speed_10m
             },
             sys: {
-                country: data.location.country
+                country: country
             }
         };
     } catch (error) {
