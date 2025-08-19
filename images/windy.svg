@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="64" height="64">
+  <!-- Clouds -->
+  <ellipse cx="35" cy="40" rx="20" ry="15" fill="#E0E0E0" stroke="#B0B0B0" stroke-width="2"/>
+  <ellipse cx="65" cy="40" rx="18" ry="12" fill="#E0E0E0" stroke="#B0B0B0" stroke-width="2"/>
+  <ellipse cx="50" cy="50" rx="25" ry="18" fill="#E0E0E0" stroke="#B0B0B0" stroke-width="2"/>
+  
+  <!-- Wind lines -->
+  <g stroke="#4A90E2" stroke-width="3" fill="none" opacity="0.8">
+    <path d="M10 30 Q20 25 30 30 Q40 35 50 30" stroke-dasharray="5,5"/>
+    <path d="M15 45 Q25 40 35 45 Q45 50 55 45" stroke-dasharray="5,5"/>
+    <path d="M20 60 Q30 55 40 60 Q50 65 60 60" stroke-dasharray="5,5"/>
+  </g>
+</svg>
