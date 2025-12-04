@@ -44,6 +44,12 @@ A modern, responsive weather application that displays real-time weather informa
 2. **Open in browser**
    - Simply open `index.html` in your web browser
    - Or use a local server: `python -m http.server 8000`
+   - Or use Node (npm) from the project root:
+     ```powershell
+     npm install
+     npm start
+     # Then open http://localhost:8000
+     ```
 
 3. **Ready to Use** ✅
    - **GitHub Demo**: Uses Open-Meteo API (free, no API key required)
@@ -122,6 +128,28 @@ const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
 **To switch between versions:**
 1. For GitHub demo: Use `script.js` (default)
 2. For local development: Rename `script-local.js` to `script.js`
+
+### 🛠 Development helpers (live reload & local API)
+
+To make development easier there's now a live-reload dev script and a couple of helper npm scripts in this project:
+
+- Start a live-reloading dev server (will open your browser):
+```powershell
+npm run dev
+```
+
+- Switch to the local WeatherAPI implementation (copy `script-local.js` -> `script.js`):
+```powershell
+npm run use-local
+# then open http://localhost:8000 or run `npm run dev`
+```
+
+- Restore the original `script.js` from Git (undo the copy):
+```powershell
+npm run restore-remote
+```
+
+Important: `script-local.js` may contain a placeholder API key — do not commit a real API key to the repository. Keep local keys out of version control or use environment-based build steps for production apps.
 
 ### Adding New Weather Icons
 1. Add SVG icon to `images/` folder

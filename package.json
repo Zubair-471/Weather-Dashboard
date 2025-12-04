@@ -1,0 +1,16 @@
+{
+  "name": "weather-dashboard",
+  "version": "1.0.0",
+  "description": "Static Weather Dashboard — serve with npm start",
+  "private": true,
+  "scripts": {
+    "start": "http-server -p 8000 -c-1",
+    "dev": "live-server --port=8000 --open=./index.html",
+    "use-local": "node -e \"require('fs').copyFileSync('script-local.js','script.js')\"",
+    "restore-remote": "git checkout -- script.js"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  }
+}

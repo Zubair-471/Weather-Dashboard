@@ -1,12 +1,7 @@
-// Configuration
-// For GitHub Pages demo, use Open-Meteo (free, no API key required)
-// For local development with your API key, uncomment the lines below
-const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1';
-const GEOCODING_API_URL = 'https://geocoding-api.open-meteo.com/v1';
-
-// Uncomment these lines for local development with your WeatherAPI.com key
-// const WEATHER_API_KEY = 'cfc982980dda4fe99ee151608251708';
-// const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
+// Configuration for Local Development
+// This file uses your WeatherAPI.com API key for local testing
+const WEATHER_API_KEY = 'cfc982980dda4fe99ee151608251708'; // WeatherAPI.com API key
+const WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1';
 
 // DOM Elements
 const weatherCards = document.getElementById('weather-cards');
@@ -84,105 +79,38 @@ function getCustomWeatherIcon(weatherDescription) {
     }
 }
 
-function getWeatherDescription(code) {
-    const weatherCodes = {
-        0: 'Clear sky',
-        1: 'Mainly clear',
-        2: 'Partly cloudy',
-        3: 'Overcast',
-        45: 'Foggy',
-        48: 'Depositing rime fog',
-        51: 'Light drizzle',
-        53: 'Moderate drizzle',
-        55: 'Dense drizzle',
-        61: 'Slight rain',
-        63: 'Moderate rain',
-        65: 'Heavy rain',
-        71: 'Slight snow',
-        73: 'Moderate snow',
-        75: 'Heavy snow',
-        77: 'Snow grains',
-        80: 'Slight rain showers',
-        81: 'Moderate rain showers',
-        82: 'Violent rain showers',
-        85: 'Slight snow showers',
-        86: 'Heavy snow showers',
-        95: 'Thunderstorm',
-        96: 'Thunderstorm with slight hail',
-        99: 'Thunderstorm with heavy hail'
-    };
-    return weatherCodes[code] || 'Unknown';
-}
-
-function getWeatherIconCode(code) {
-    const iconMap = {
-        0: '01d', 1: '01d', 2: '02d', 3: '03d',
-        45: '50d', 48: '50d',
-        51: '09d', 53: '09d', 55: '09d',
-        61: '10d', 63: '10d', 65: '10d',
-        71: '13d', 73: '13d', 75: '13d', 77: '13d',
-        80: '09d', 81: '09d', 82: '09d',
-        85: '13d', 86: '13d',
-        95: '11d', 96: '11d', 99: '11d'
-    };
-    return iconMap[code] || '01d';
-}
-
-// API Functions
+// API Functions using WeatherAPI.com
 async function fetchWeatherData(city) {
     try {
-        // First, get coordinates for the city
-        const geoResponse = await fetch(
-            `${GEOCODING_API_URL}/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+        const response = await fetch(
+            `${WEATHER_API_BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&aqi=no`
         );
         
-        if (!geoResponse.ok) {
+        if (!response.ok) {
             throw new Error(`City not found: ${city}`);
         }
         
-        const geoData = await geoResponse.json();
+        const data = await response.json();
         
-        if (!geoData.results || geoData.results.length === 0) {
-            throw new Error(`City not found: ${city}`);
-        }
-        
-        const location = geoData.results[0];
-        const { latitude, longitude, country, name } = location;
-        
-        // Then, get weather data using coordinates
-        const weatherResponse = await fetch(
-            `${OPEN_METEO_BASE_URL}/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,wind_speed_10m,weather_code&hourly=weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
-        );
-        
-        if (!weatherResponse.ok) {
-            throw new Error(`Failed to fetch weather for ${city}`);
-        }
-        
-        const weatherData = await weatherResponse.json();
-        
-        // Transform Open-Meteo data to match expected format
-        const current = weatherData.current;
-        const weatherCode = current.weather_code;
-        const weatherDescription = getWeatherDescription(weatherCode);
-        
+        // Transform WeatherAPI.com data to match expected format
         return {
-            name: name,
+            name: data.location.name,
             main: {
-                temp: current.temperature_2m,
-                humidity: current.relative_humidity_2m,
-                feels_like: current.apparent_temperature,
-                pressure: current.pressure_msl
+                temp: data.current.temp_c,
+                humidity: data.current.humidity,
+                feels_like: data.current.feelslike_c,
+                pressure: data.current.pressure_mb
             },
             weather: [{
-                main: weatherDescription,
-                description: weatherDescription,
-                icon: weatherCode
+                main: data.current.condition.text,
+                description: data.current.condition.text,
+                icon: data.current.condition.icon
             }],
             wind: {
-                speed: current.wind_speed_10m
+                speed: data.current.wind_kph
             },
             sys: {
-                country: country
+                country: data.location.country
             }
         };
     } catch (error) {
@@ -192,47 +120,28 @@ async function fetchWeatherData(city) {
 
 async function fetchForecastData(city) {
     try {
-        // First, get coordinates for the city
-        const geoResponse = await fetch(
-            `${GEOCODING_API_URL}/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+        const response = await fetch(
+            `${WEATHER_API_BASE_URL}/forecast.json?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&days=3&aqi=no&alerts=no`
         );
         
-        if (!geoResponse.ok) {
-            throw new Error(`City not found: ${city}`);
-        }
-        
-        const geoData = await geoResponse.json();
-        
-        if (!geoData.results || geoData.results.length === 0) {
-            throw new Error(`City not found: ${city}`);
-        }
-        
-        const location = geoData.results[0];
-        const { latitude, longitude } = location;
-        
-        // Then, get forecast data using coordinates
-        const forecastResponse = await fetch(
-            `${OPEN_METEO_BASE_URL}/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
-        );
-        
-        if (!forecastResponse.ok) {
+        if (!response.ok) {
             throw new Error(`Forecast not available for: ${city}`);
         }
         
-        const forecastData = await forecastResponse.json();
+        const data = await response.json();
         
-        // Transform Open-Meteo forecast data to match expected format
-        return forecastData.daily.time.slice(1, 4).map((date, index) => ({
-            dt: new Date(date).getTime() / 1000,
+        // Transform WeatherAPI.com forecast data to match expected format
+        return data.forecast.forecastday.slice(1, 4).map(day => ({
+            dt: new Date(day.date).getTime() / 1000,
             main: {
-                temp_max: forecastData.daily.temperature_2m_max[index + 1],
-                temp_min: forecastData.daily.temperature_2m_min[index + 1],
-                temp: (forecastData.daily.temperature_2m_max[index + 1] + forecastData.daily.temperature_2m_min[index + 1]) / 2
+                temp_max: day.day.maxtemp_c,
+                temp_min: day.day.mintemp_c,
+                temp: day.day.avgtemp_c
             },
             weather: [{
-                main: getWeatherDescription(forecastData.daily.weather_code[index + 1]),
-                description: getWeatherDescription(forecastData.daily.weather_code[index + 1]),
-                icon: forecastData.daily.weather_code[index + 1]
+                main: day.day.condition.text,
+                description: day.day.condition.text,
+                icon: day.day.condition.icon
             }]
         }));
     } catch (error) {
@@ -243,7 +152,7 @@ async function fetchForecastData(city) {
 async function fetchWeatherByCoords(lat, lon) {
     try {
         const response = await fetch(
-            `${OPEN_METEO_BASE_URL}/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,wind_speed_10m,weather_code&timezone=auto`
+            `${WEATHER_API_BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&aqi=no`
         );
         
         if (!response.ok) {
@@ -252,45 +161,25 @@ async function fetchWeatherByCoords(lat, lon) {
         
         const data = await response.json();
         
-        // Get city name from reverse geocoding
-        const geoResponse = await fetch(
-            `${GEOCODING_API_URL}/search?latitude=${lat}&longitude=${lon}&count=1&language=en&format=json`
-        );
-        
-        let cityName = 'Your Location';
-        let country = '';
-        
-        if (geoResponse.ok) {
-            const geoData = await geoResponse.json();
-            if (geoData.results && geoData.results.length > 0) {
-                cityName = geoData.results[0].name;
-                country = geoData.results[0].country;
-            }
-        }
-        
-        // Transform Open-Meteo data to match expected format
-        const current = data.current;
-        const weatherCode = current.weather_code;
-        const weatherDescription = getWeatherDescription(weatherCode);
-        
+        // Transform WeatherAPI.com data to match expected format
         return {
-            name: cityName,
+            name: data.location.name,
             main: {
-                temp: current.temperature_2m,
-                humidity: current.relative_humidity_2m,
-                feels_like: current.apparent_temperature,
-                pressure: current.pressure_msl
+                temp: data.current.temp_c,
+                humidity: data.current.humidity,
+                feels_like: data.current.feelslike_c,
+                pressure: data.current.pressure_mb
             },
             weather: [{
-                main: weatherDescription,
-                description: weatherDescription,
-                icon: weatherCode
+                main: data.current.condition.text,
+                description: data.current.condition.text,
+                icon: data.current.condition.icon
             }],
             wind: {
-                speed: current.wind_speed_10m
+                speed: data.current.wind_kph
             },
             sys: {
-                country: country
+                country: data.location.country
             }
         };
     } catch (error) {
@@ -316,39 +205,39 @@ function createWeatherCard(weatherData, forecastData = []) {
         
         <h2><i class="fas fa-map-marker-alt"></i> ${weatherData.name}, ${weatherData.sys.country}</h2>
         
-                 <img src="${getCustomWeatherIcon(weatherData.weather[0].description)}" 
-              alt="${weatherData.weather[0].description}" 
-              class="weather-icon">
+        <img src="${getCustomWeatherIcon(weatherData.weather[0].description)}" 
+             alt="${weatherData.weather[0].description}" 
+             class="weather-icon">
         
         <div class="temperature">${temp}°C</div>
         <div class="weather-description">${weatherData.weather[0].description}</div>
         
-                 <div class="weather-details">
-             <div class="detail">
-                 <i class="fas fa-thermometer-half"></i>
-                 <span>Feels like ${feelsLike}°C</span>
-             </div>
-             <div class="detail">
-                 <i class="fas fa-tint"></i>
-                 <span>Humidity ${humidity}%</span>
-             </div>
-             <div class="detail">
-                 <i class="fas fa-wind"></i>
-                 <span>Wind ${windSpeed} km/h</span>
-             </div>
-             <div class="detail">
-                 <i class="fas fa-compress-alt"></i>
-                 <span>${weatherData.main.pressure || 'N/A'} hPa</span>
-             </div>
-         </div>
+        <div class="weather-details">
+            <div class="detail">
+                <i class="fas fa-thermometer-half"></i>
+                <span>Feels like ${feelsLike}°C</span>
+            </div>
+            <div class="detail">
+                <i class="fas fa-tint"></i>
+                <span>Humidity ${humidity}%</span>
+            </div>
+            <div class="detail">
+                <i class="fas fa-wind"></i>
+                <span>Wind ${windSpeed} km/h</span>
+            </div>
+            <div class="detail">
+                <i class="fas fa-compress-alt"></i>
+                <span>${weatherData.main.pressure || 'N/A'} hPa</span>
+            </div>
+        </div>
         
         ${forecastData.length > 0 ? `
             <div class="forecast">
                 ${forecastData.map(day => `
                     <div class="forecast-day">
                         <small>${formatDate(day.dt)}</small>
-                                                 <img src="${getCustomWeatherIcon(day.weather[0].description)}" 
-                              alt="${day.weather[0].description}">
+                        <img src="${getCustomWeatherIcon(day.weather[0].description)}" 
+                             alt="${day.weather[0].description}">
                         <div class="temp">${Math.round(day.main.temp)}°C</div>
                     </div>
                 `).join('')}
@@ -364,115 +253,90 @@ function renderWeatherCards() {
     
     cities.forEach(async (city) => {
         try {
-            showLoading();
-            
-            const [weatherData, forecastData] = await Promise.all([
-                fetchWeatherData(city),
-                fetchForecastData(city)
-            ]);
-            
+            const weatherData = await fetchWeatherData(city);
+            const forecastData = await fetchForecastData(city);
             const card = createWeatherCard(weatherData, forecastData);
             weatherCards.appendChild(card);
-            
         } catch (error) {
-            showError(error.message);
-        } finally {
-            hideLoading();
+            showError(`Failed to load weather for ${city}: ${error.message}`);
         }
     });
 }
 
-function addCity(cityName) {
-    const trimmedCity = cityName.trim();
+// Event Handlers
+searchBtn.addEventListener('click', async () => {
+    const city = searchInput.value.trim();
+    if (!city) return;
     
-    if (!trimmedCity) {
-        showError('Please enter a city name');
+    if (cities.includes(city)) {
+        showError(`${city} is already in your dashboard`);
         return;
     }
     
-    if (cities.includes(trimmedCity)) {
-        showError(`${trimmedCity} is already in your dashboard`);
-        return;
-    }
+    showLoading();
     
-    cities.push(trimmedCity);
-    renderWeatherCards();
-    searchInput.value = '';
-}
+    try {
+        const weatherData = await fetchWeatherData(city);
+        const forecastData = await fetchForecastData(city);
+        
+        cities.push(city);
+        const card = createWeatherCard(weatherData, forecastData);
+        weatherCards.appendChild(card);
+        
+        searchInput.value = '';
+        hideLoading();
+    } catch (error) {
+        showError(error.message);
+        hideLoading();
+    }
+});
 
-function removeCity(cityName) {
-    cities = cities.filter(city => city !== cityName);
-    renderWeatherCards();
-}
-
-async function getCurrentLocation() {
+locationBtn.addEventListener('click', async () => {
     if (!navigator.geolocation) {
         showError('Geolocation is not supported by your browser');
         return;
     }
     
-    try {
-        showLoading();
-        
-        const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                timeout: 10000,
-                enableHighAccuracy: true
-            });
-        });
-        
-        const { latitude, longitude } = position.coords;
-        const weatherData = await fetchWeatherByCoords(latitude, longitude);
-        
-        if (!cities.includes(weatherData.name)) {
-            cities.unshift(weatherData.name);
-            renderWeatherCards();
-        } else {
-            showError(`${weatherData.name} is already in your dashboard`);
-        }
-        
-    } catch (error) {
-        if (error.code === 1) {
-            showError('Location access denied. Please allow location access.');
-        } else if (error.code === 2) {
-            showError('Location unavailable. Please try again.');
-        } else if (error.code === 3) {
-            showError('Location request timed out. Please try again.');
-        } else {
+    showLoading();
+    
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+            const { latitude, longitude } = position.coords;
+            const weatherData = await fetchWeatherByCoords(latitude, longitude);
+            const forecastData = await fetchForecastData(weatherData.name);
+            
+            if (!cities.includes(weatherData.name)) {
+                cities.push(weatherData.name);
+                const card = createWeatherCard(weatherData, forecastData);
+                weatherCards.appendChild(card);
+            }
+            
+            hideLoading();
+        } catch (error) {
             showError(error.message);
+            hideLoading();
         }
-    } finally {
+    }, (error) => {
+        showError('Unable to get your location. Please check your browser settings.');
         hideLoading();
-    }
-}
-
-// Event Listeners
-searchBtn.addEventListener('click', () => {
-    if (!isLoading) {
-        addCity(searchInput.value);
-    }
+    });
 });
 
 searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !isLoading) {
-        addCity(searchInput.value);
+    if (e.key === 'Enter') {
+        searchBtn.click();
     }
 });
 
-locationBtn.addEventListener('click', () => {
-    if (!isLoading) {
-        getCurrentLocation();
+function removeCity(cityName) {
+    cities = cities.filter(city => city !== cityName);
+    const card = document.querySelector(`[data-city="${cityName}"]`);
+    if (card) {
+        card.remove();
     }
-});
+}
 
-// Initialize the dashboard
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     renderWeatherCards();
 });
-
-// Auto-refresh weather data every 30 minutes
-setInterval(() => {
-    if (cities.length > 0) {
-        renderWeatherCards();
-    }
-}, 30 * 60 * 1000);
