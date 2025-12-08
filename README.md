@@ -252,9 +252,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 * **M. Zubair Tariq**
 * 📧 [ZubairTariq.dev@gmail.com](mailto:ZubairTariq.dev@gmail.com)
 * 💼 [LinkedIn](https://www.linkedin.com/in/muhammad-zubair-tariq-70209b364)
-* 🎯 [Fiverr – ZubairWebWorks](https://www.fiverr.com/ZubairWebWorks)
 
----
 
 **Made by M. Zubair Tariq**
 
